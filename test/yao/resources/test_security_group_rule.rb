@@ -1,4 +1,9 @@
 class TestSecurityGroup < Test::Unit::TestCase
+
+  def setup
+    Yao.default_client.pool["network"] = Yao::Client.gen_client("https://example.com:12345")
+  end
+
   def test_rule_attributes
     params = {
       "id" => "test_rule_id_1",
@@ -19,6 +24,30 @@ class TestSecurityGroup < Test::Unit::TestCase
     assert_equal(rule.port_range_max, "443")
     assert_equal(rule.port_range_min, "443")
     assert_equal(rule.ethertype, "IPv4")
+  end
+
+  def test_security_group
+
+    stub_request(:get, "https://example.com:12345/security-groups/00000000-0000-0000-000000000000")
+      .to_return(
+        status: 200,
+        body: <<-JSON,
+        {
+          "security_group": {
+            "id": "00000000-0000-0000-000000000000"
+          }
+        }
+        JSON
+        headers: {'Content-Type' => 'application/json'}
+      )
+
+    params = {
+      "security_group_id" => "00000000-0000-0000-000000000000",
+    }
+
+    rule = Yao::SecurityGroupRule.new(params)
+    assert_instance_of(Yao::Resources::SecurityGroup, rule.security_group)
+    assert_equal(rule.security_group.id, "00000000-0000-0000-000000000000")
   end
 
   sub_test_case 'port_range_max == port_range_min' do
